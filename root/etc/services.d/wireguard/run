@@ -1,0 +1,119 @@
+#!/bin/sh
+# WireGuard s6 service
+# Sets up the VPN tunnel and monitors it
+
+echo "[wireguard] Starting WireGuard VPN service..."
+
+# Check for required files
+if [ ! -f /etc/wireguard/private.key ]; then
+    echo "[wireguard] ERROR: No private key found. Check your configuration."
+    echo "[wireguard] Sleeping to prevent restart loop..."
+    sleep 3600
+    exit 1
+fi
+
+if [ ! -f /etc/wireguard/peer.conf ]; then
+    echo "[wireguard] ERROR: No peer configuration found."
+    sleep 3600
+    exit 1
+fi
+
+# Read configuration
+WG_ADDRESS=$(cat /etc/wireguard/address 2>/dev/null || echo "10.5.0.2/32")
+WG_DNS=$(cat /etc/wireguard/dns 2>/dev/null || echo "1.1.1.1")
+
+# Extract just the IP without CIDR for ifconfig
+WG_IP=$(echo "$WG_ADDRESS" | sed 's|/.*||')
+
+# Get current default gateway before we modify routes
+ORIG_GW=$(route -n get default 2>/dev/null | sed -n 's/.*gateway: *//p')
+echo "[wireguard] Original gateway: $ORIG_GW"
+
+# Get VPN endpoint IP from peer config
+ENDPOINT=$(sed -n 's/^Endpoint *= *//p' /etc/wireguard/peer.conf | sed 's/:.*$//')
+echo "[wireguard] VPN endpoint: $ENDPOINT"
+
+# Create WireGuard interface
+echo "[wireguard] Creating wg0 interface..."
+ifconfig wg0 destroy 2>/dev/null || true
+ifconfig wg create name wg0
+
+# Configure peer (must be done before setting private key, as setconf resets interface)
+echo "[wireguard] Configuring peer..."
+wg setconf wg0 /etc/wireguard/peer.conf
+
+# Set private key (after setconf, which resets interface config)
+wg set wg0 private-key /etc/wireguard/private.key
+
+# Set IP address and bring interface up
+echo "[wireguard] Setting IP address: $WG_ADDRESS"
+ifconfig wg0 inet "$WG_ADDRESS"
+ifconfig wg0 up
+
+# Add route to VPN endpoint via original gateway (so VPN traffic can escape)
+if [ -n "$ORIG_GW" ] && [ -n "$ENDPOINT" ]; then
+    echo "[wireguard] Adding route to $ENDPOINT via $ORIG_GW"
+    route add "$ENDPOINT" "$ORIG_GW" 2>/dev/null || true
+fi
+
+# Replace default route with WireGuard tunnel
+echo "[wireguard] Setting default route through wg0..."
+route delete default 2>/dev/null || true
+route add default -interface wg0
+
+# Set DNS
+echo "[wireguard] Setting DNS to: $WG_DNS"
+echo "nameserver $WG_DNS" > /etc/resolv.conf
+
+# Wait for handshake
+echo "[wireguard] Waiting for VPN handshake..."
+TRIES=0
+while [ $TRIES -lt 30 ]; do
+    HANDSHAKE=$(wg show wg0 latest-handshakes 2>/dev/null | sed 's/.*\t//')
+    if [ -n "$HANDSHAKE" ] && [ "$HANDSHAKE" != "0" ]; then
+        echo "[wireguard] VPN connected! Handshake completed."
+        break
+    fi
+    TRIES=$((TRIES + 1))
+    sleep 1
+done
+
+if [ $TRIES -eq 30 ]; then
+    echo "[wireguard] WARNING: No handshake after 30 seconds. VPN may not be working."
+fi
+
+# Show status
+wg show wg0
+
+# Test connectivity
+echo "[wireguard] Testing VPN connectivity..."
+VPN_IP=$(fetch -qo- http://ifconfig.me/ip 2>/dev/null || echo "FAILED")
+echo "[wireguard] External IP: $VPN_IP"
+
+# Signal that WireGuard is ready (use : > instead of touch for minimal FreeBSD)
+: > /run/wireguard-ready
+
+# Monitor the tunnel - if handshake becomes stale, exit to trigger restart
+echo "[wireguard] Monitoring tunnel health..."
+while true; do
+    sleep 60
+
+    # Check if interface still exists
+    if ! ifconfig wg0 > /dev/null 2>&1; then
+        echo "[wireguard] wg0 interface lost! Restarting..."
+        rm -f /run/wireguard-ready
+        exit 1
+    fi
+
+    # Check for recent handshake (within last 3 minutes)
+    LAST_HS=$(wg show wg0 latest-handshakes 2>/dev/null | sed 's/.*\t//')
+    NOW=$(date +%s)
+    if [ -n "$LAST_HS" ] && [ "$LAST_HS" != "0" ]; then
+        AGE=$((NOW - LAST_HS))
+        if [ $AGE -gt 180 ]; then
+            echo "[wireguard] Handshake stale ($AGE seconds). Restarting..."
+            rm -f /run/wireguard-ready
+            exit 1
+        fi
+    fi
+done

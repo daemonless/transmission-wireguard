@@ -1,0 +1,87 @@
+#!/bin/sh
+# Initialize WireGuard configuration
+#
+# Configuration methods (in order of priority):
+# 1. Mount a config file to /config/wg0.conf
+# 2. Set environment variables:
+#    - WG_PRIVATE_KEY (required)
+#    - WG_PEER_PUBLIC_KEY (required)
+#    - WG_ENDPOINT (required) - e.g., vpn.example.com:51820
+#    - WG_ADDRESS (optional, default: 10.5.0.2/32)
+#    - WG_DNS (optional, default: 1.1.1.1)
+#    - WG_ALLOWED_IPS (optional, default: 0.0.0.0/0)
+#    - WG_PERSISTENT_KEEPALIVE (optional, default: 25)
+
+echo "[wireguard] Configuring WireGuard VPN..."
+
+# Check for mounted config file first
+if [ -f /config/wg0.conf ]; then
+    echo "[wireguard] Using mounted config file: /config/wg0.conf"
+    cp /config/wg0.conf /etc/wireguard/wg0.conf
+    chmod 600 /etc/wireguard/wg0.conf
+
+    # Extract private key for wg command (wg setconf doesn't handle [Interface])
+    WG_PRIVATE_KEY=$(sed -n 's/^PrivateKey *= *//p' /config/wg0.conf)
+
+    # Create peer-only config for wg setconf
+    sed -n '/^\[Peer\]/,$ p' /config/wg0.conf > /etc/wireguard/peer.conf
+
+    # Extract address and DNS for interface setup
+    WG_ADDRESS=$(sed -n 's/^Address *= *//p' /config/wg0.conf)
+    WG_DNS=$(sed -n 's/^DNS *= *//p' /config/wg0.conf)
+
+elif [ -n "$WG_PRIVATE_KEY" ] && [ -n "$WG_PEER_PUBLIC_KEY" ] && [ -n "$WG_ENDPOINT" ]; then
+    echo "[wireguard] Using environment variables for configuration"
+
+    # Defaults
+    WG_ADDRESS=${WG_ADDRESS:-10.5.0.2/32}
+    WG_DNS=${WG_DNS:-1.1.1.1}
+    WG_ALLOWED_IPS=${WG_ALLOWED_IPS:-0.0.0.0/0}
+    WG_PERSISTENT_KEEPALIVE=${WG_PERSISTENT_KEEPALIVE:-25}
+
+    # Create full config for reference
+    cat > /etc/wireguard/wg0.conf << EOF
+[Interface]
+PrivateKey = ${WG_PRIVATE_KEY}
+Address = ${WG_ADDRESS}
+DNS = ${WG_DNS}
+
+[Peer]
+PublicKey = ${WG_PEER_PUBLIC_KEY}
+AllowedIPs = ${WG_ALLOWED_IPS}
+Endpoint = ${WG_ENDPOINT}
+PersistentKeepalive = ${WG_PERSISTENT_KEEPALIVE}
+EOF
+    chmod 600 /etc/wireguard/wg0.conf
+
+    # Create peer-only config for wg setconf
+    cat > /etc/wireguard/peer.conf << EOF
+[Peer]
+PublicKey = ${WG_PEER_PUBLIC_KEY}
+AllowedIPs = ${WG_ALLOWED_IPS}
+Endpoint = ${WG_ENDPOINT}
+PersistentKeepalive = ${WG_PERSISTENT_KEEPALIVE}
+EOF
+
+else
+    echo "[wireguard] ERROR: No WireGuard configuration found!"
+    echo "[wireguard] Either mount a config file to /config/wg0.conf"
+    echo "[wireguard] Or set WG_PRIVATE_KEY, WG_PEER_PUBLIC_KEY, and WG_ENDPOINT"
+    # Don't exit - let the wireguard service handle the error
+fi
+
+# Save extracted values for the service script
+if [ -n "$WG_PRIVATE_KEY" ]; then
+    printf '%s' "$WG_PRIVATE_KEY" > /etc/wireguard/private.key
+    chmod 600 /etc/wireguard/private.key
+fi
+
+# Set defaults if not extracted
+WG_ADDRESS=${WG_ADDRESS:-10.5.0.2/32}
+WG_DNS=${WG_DNS:-1.1.1.1}
+
+# Save for service script
+echo "$WG_ADDRESS" > /etc/wireguard/address
+echo "$WG_DNS" > /etc/wireguard/dns
+
+echo "[wireguard] Configuration prepared"

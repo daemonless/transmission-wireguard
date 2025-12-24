@@ -1,0 +1,32 @@
+#!/bin/sh
+# Transmission s6 service
+# Waits for WireGuard to be ready before starting
+
+echo "[transmission] Waiting for WireGuard VPN to be ready..."
+
+# Wait for WireGuard to signal ready
+TRIES=0
+while [ ! -f /run/wireguard-ready ] && [ $TRIES -lt 120 ]; do
+    sleep 1
+    TRIES=$((TRIES + 1))
+done
+
+if [ ! -f /run/wireguard-ready ]; then
+    echo "[transmission] ERROR: WireGuard not ready after 120 seconds!"
+    echo "[transmission] Refusing to start without VPN protection."
+    sleep 60
+    exit 1
+fi
+
+echo "[transmission] VPN is ready, starting Transmission..."
+
+# Verify we're going through the VPN
+VPN_IP=$(fetch -qo- http://ifconfig.me/ip 2>/dev/null || echo "unknown")
+echo "[transmission] Current external IP: $VPN_IP"
+
+export TRANSMISSION_WEB_HOME=/usr/local/share/transmission/web
+
+# Signal readiness when the port is responsive
+s6-ready-when fetch -qo /dev/null http://localhost:9091/transmission/web/
+
+exec /usr/local/bin/s6-setuidgid bsd /usr/local/bin/transmission-daemon -f -g /config --port 9091
