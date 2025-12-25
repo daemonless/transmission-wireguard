@@ -2,7 +2,7 @@ ARG BASE_VERSION=15
 FROM ghcr.io/daemonless/base:${BASE_VERSION}
 
 ARG FREEBSD_ARCH=amd64
-LABEL org.opencontainers.image.title="transmission-wireguard" \
+LABEL org.opencontainers.image.title="Transmission WireGuard" \
       org.opencontainers.image.description="Transmission BitTorrent client with WireGuard VPN on FreeBSD" \
       org.opencontainers.image.source="https://github.com/daemonless/transmission-wireguard" \
       org.opencontainers.image.url="https://transmissionbt.com/" \
