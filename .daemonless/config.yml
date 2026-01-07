@@ -1,4 +1,3 @@
 icon: ':simple-wireguard:'
 cit:
-  mode: port
-  port: 9091
+  mode: shell
