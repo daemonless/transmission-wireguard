@@ -2,25 +2,33 @@
 # Transmission s6 service
 # Waits for WireGuard to be ready before starting
 
-echo "[transmission] Waiting for WireGuard VPN to be ready..."
-
-# Wait for WireGuard to signal ready
-TRIES=0
-while [ ! -f /run/wireguard-ready ] && [ $TRIES -lt 120 ]; do
-    sleep 1
-    TRIES=$((TRIES + 1))
-done
-
-if [ ! -f /run/wireguard-ready ]; then
-    echo "[transmission] ERROR: WireGuard not ready after 120 seconds!"
-    echo "[transmission] Refusing to start without VPN protection."
-    sleep 60
-    exit 1
+# Load environment variables
+if [ -f /run/s6/container-environment/all_envs ]; then
+    . /run/s6/container-environment/all_envs
 fi
 
-echo "[transmission] VPN is ready, starting Transmission..."
+if [ "${WG_ENABLE}" != "false" ]; then
+    echo "[transmission] Waiting for WireGuard VPN to be ready..."
 
-# Verify we're going through the VPN
+    # Wait for WireGuard to signal ready
+    TRIES=0
+    while [ ! -f /run/wireguard-ready ] && [ $TRIES -lt 120 ]; do
+        sleep 1
+        TRIES=$((TRIES + 1))
+    done
+
+    if [ ! -f /run/wireguard-ready ]; then
+        echo "[transmission] ERROR: WireGuard not ready after 120 seconds!"
+        echo "[transmission] Refusing to start without VPN protection."
+        sleep 60
+        exit 1
+    fi
+    echo "[transmission] VPN is ready, starting Transmission..."
+else
+    echo "[transmission] WireGuard disabled, starting Transmission without VPN..."
+fi
+
+# Verify external IP
 VPN_IP=$(fetch -qo- http://ifconfig.me/ip 2>/dev/null || echo "unknown")
 echo "[transmission] Current external IP: $VPN_IP"
 

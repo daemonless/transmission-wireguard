@@ -1,0 +1,53 @@
+name: transmission-wireguard
+
+x-daemonless:
+  title: "Transmission with WireGuard"
+  icon: ":simple-wireguard:"
+  category: "Downloaders"
+  description: "Transmission BitTorrent client with built-in WireGuard VPN support."
+  upstream_url: "https://github.com/transmission/transmission"
+  web_url: "https://transmissionbt.com/"
+  freshports_url: "https://www.freshports.org/net-p2p/transmission-daemon/"
+  user: "bsd"
+  mlock: false
+  upstream_binary: false
+  
+  docs:
+    env:
+      PUID: "User ID for the application process"
+      PGID: "Group ID for the application process"
+      TZ: "Timezone for the container"
+      WG_ENABLE: "Enable WireGuard (true/false)"
+    volumes:
+      /config: "Configuration directory (settings.json, WireGuard configs)"
+      /downloads: "Download directory"
+      /watch: "Watch directory for torrent files"
+    ports:
+      9091: "Web UI"
+      51413: "Torrent traffic (TCP/UDP)"
+
+services:
+  transmission-wireguard:
+    image: ghcr.io/daemonless/transmission-wireguard:latest
+    container_name: transmission-wireguard
+    restart: unless-stopped
+    
+    # Needs devices for tun
+    devices:
+      - /dev/tun:/dev/tun
+
+    environment:
+      - WG_ENABLE=true
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+
+    volumes:
+      - /path/to/containers/transmission-wireguard/config:/config
+      - /path/to/downloads:/downloads
+      - /path/to/watch:/watch
+
+    ports:
+      - "9091:9091"
+      - "51413:51413"
+      - "51413:51413/udp"

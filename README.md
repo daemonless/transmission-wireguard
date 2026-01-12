@@ -1,110 +1,109 @@
-# transmission-wireguard
+# Transmission with WireGuard
 
-Transmission BitTorrent client running through a WireGuard VPN tunnel on FreeBSD.
+Transmission BitTorrent client with built-in WireGuard VPN support.
 
-## Environment Variables (Standard)
+| | |
+|---|---|
+| **Port** | 9091 |
+| **Registry** | `ghcr.io/daemonless/transmission-wireguard` |
+| **Source** | [https://github.com/transmission/transmission](https://github.com/transmission/transmission) |
+| **Website** | [https://transmissionbt.com/](https://transmissionbt.com/) |
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PUID` | User ID for the application process | `1000` |
-| `PGID` | Group ID for the application process | `1000` |
-| `TZ` | Timezone for the container | `UTC` |
-| `S6_LOG_ENABLE` | Enable/Disable file logging | `1` |
-| `S6_LOG_MAX_SIZE` | Max size per log file (bytes) | `1048576` |
-| `S6_LOG_MAX_FILES` | Number of rotated log files to keep | `10` |
+## Deployment
 
-## Logging
-
-This image uses `s6-log` for internal log rotation.
-- **System Logs**: Captured from console and stored at `/config/logs/daemonless/transmission-wireguard/`.
-- **Application Logs**: Managed by the app and typically found in `/config/logs/`.
-- **Podman Logs**: Output is mirrored to the console, so `podman logs` still works.
-
-## Quick Start
-
-```bash
-podman run -d --name transmission-vpn \
-  --annotation 'org.freebsd.jail.vnet=new' \
-  -e WG_PRIVATE_KEY="your-private-key" \
-  -e WG_PEER_PUBLIC_KEY="vpn-server-public-key" \
-  -e WG_ENDPOINT="vpn.example.com:51820" \
-  -e PUID=1000 -e PGID=1000 \
-  -v /path/to/config:/config \
-  -v /path/to/downloads:/downloads \
-  ghcr.io/daemonless/transmission-wireguard:latest
-```
-
-**Access:** Check IP with `podman inspect transmission-vpn --format '{{.NetworkSettings.IPAddress}}'` then go to `http://<IP>:9091`.
-
-## podman-compose
+### Podman Compose
 
 ```yaml
 services:
-  transmission-vpn:
+  transmission-wireguard:
     image: ghcr.io/daemonless/transmission-wireguard:latest
-    container_name: transmission-vpn
+    container_name: transmission-wireguard
     environment:
-      - WG_PRIVATE_KEY=your-private-key
-      - WG_PEER_PUBLIC_KEY=vpn-server-public-key
-      - WG_ENDPOINT=vpn.example.com:51820
-      - WG_ADDRESS=10.5.0.2/32
-      - WG_DNS=1.1.1.1
+      - WG_ENABLE=true
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York
+      - TZ=UTC
     volumes:
-      - /data/config/transmission-vpn:/config
-      - /data/downloads:/downloads
-      - /data/watch:/watch
-    annotations:
-      org.freebsd.jail.vnet: "new"
+      - /path/to/containers/transmission-wireguard:/config
+      - /path/to/downloads:/downloads
+      - /path/to/containers/transmission-wireguard/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413
     restart: unless-stopped
 ```
 
-## Tags
+### Podman CLI
 
-| Tag | Source | Description |
-|-----|--------|-------------|
-| `:latest` | [Upstream Releases](https://transmissionbt.com/) | Latest upstream release |
+```bash
+podman run -d --name transmission-wireguard \
+  -p 9091:9091 \
+  -p 51413:51413 \
+  -p 51413:51413 \
+  -e WG_ENABLE=true \
+  -e PUID=@PUID@ \
+  -e PGID=@PGID@ \
+  -e TZ=@TZ@ \
+  -v /path/to/containers/transmission-wireguard:/config \ 
+  -v /path/to/downloads:/downloads \ 
+  -v /path/to/containers/transmission-wireguard/watch:/watch \ 
+  ghcr.io/daemonless/transmission-wireguard:latest
+```
+Access at: `http://localhost:9091`
 
-## WireGuard Configuration
+### Ansible
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `WG_PRIVATE_KEY` | Yes | - | Your WireGuard private key |
-| `WG_PEER_PUBLIC_KEY` | Yes | - | VPN server's public key |
-| `WG_ENDPOINT` | Yes | - | VPN server address (host:port) |
-| `WG_ADDRESS` | No | `10.5.0.2/32` | Your tunnel IP address |
-| `WG_DNS` | No | `1.1.1.1` | DNS server to use |
+```yaml
+- name: Deploy transmission-wireguard
+  containers.podman.podman_container:
+    name: transmission-wireguard
+    image: ghcr.io/daemonless/transmission-wireguard:latest
+    state: started
+    restart_policy: always
+    env:
+      WG_ENABLE: "true"
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "UTC"
+    ports:
+      - "9091:9091"
+      - "51413:51413"
+      - "51413:51413"
+    volumes:
+      - "/path/to/containers/transmission-wireguard:/config"
+      - "/path/to/downloads:/downloads"
+      - "/path/to/containers/transmission-wireguard/watch:/watch"
+```
 
-## Volumes
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WG_ENABLE` | `true` | Enable WireGuard (true/false) |
+| `PUID` | `1000` | User ID for the application process |
+| `PGID` | `1000` | Group ID for the application process |
+| `TZ` | `UTC` | Timezone for the container |
+
+### Volumes
 
 | Path | Description |
 |------|-------------|
-| `/config` | Configuration directory |
+| `/config` | Configuration directory (settings.json, WireGuard configs) |
 | `/downloads` | Download directory |
-| `/watch` | Watch directory |
+| `/watch` | Watch directory for torrent files |
 
-## Ports
+### Ports
 
 | Port | Protocol | Description |
 |------|----------|-------------|
-| 9091 | TCP | Web UI / RPC |
-| 51413 | TCP/UDP | BitTorrent peer connections |
+| `9091` | TCP | Web UI |
+| `51413` | TCP | Torrent traffic (TCP/UDP) |
+| `51413` | TCP | Torrent traffic (TCP/UDP) |
 
 ## Notes
 
-- **User:** `bsd` (UID/GID set via PUID/PGID, default 1000)
-- **Base:** Built on `ghcr.io/daemonless/base-image` (FreeBSD)
-
-### Specific Requirements
-- **VNET Required:** Must use `--annotation 'org.freebsd.jail.vnet=new'`
-- **Kernel Module:** Host must have `if_wg` loaded (`kldload if_wg`)
-
-### Kill Switch
-Traffic is routed through the VPN interface. If the VPN drops, Transmission loses connectivity.
-
-## Links
-
-- [Website](https://transmissionbt.com/)
-- [FreshPorts](https://www.freshports.org/net-p2p/transmission-daemon/)
+- **User:** `bsd` (UID/GID set via PUID/PGID)
+- **Base:** Built on `ghcr.io/daemonless/base` (FreeBSD)

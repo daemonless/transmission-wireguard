@@ -2,6 +2,16 @@
 # WireGuard s6 service
 # Sets up the VPN tunnel and monitors it
 
+# Load environment variables
+if [ -f /run/s6/container-environment/all_envs ]; then
+    . /run/s6/container-environment/all_envs
+fi
+
+if [ "${WG_ENABLE}" = "false" ]; then
+    echo "[wireguard] WireGuard disabled by environment variable."
+    exit 0
+fi
+
 echo "[wireguard] Starting WireGuard VPN service..."
 
 # Check for required files
@@ -69,7 +79,7 @@ echo "nameserver $WG_DNS" > /etc/resolv.conf
 echo "[wireguard] Waiting for VPN handshake..."
 TRIES=0
 while [ $TRIES -lt 30 ]; do
-    HANDSHAKE=$(wg show wg0 latest-handshakes 2>/dev/null | sed 's/.*\t//')
+    HANDSHAKE=$(wg show wg0 latest-handshakes 2>/dev/null | sed 's/.*	//')
     if [ -n "$HANDSHAKE" ] && [ "$HANDSHAKE" != "0" ]; then
         echo "[wireguard] VPN connected! Handshake completed."
         break
@@ -106,7 +116,7 @@ while true; do
     fi
 
     # Check for recent handshake (within last 3 minutes)
-    LAST_HS=$(wg show wg0 latest-handshakes 2>/dev/null | sed 's/.*\t//')
+    LAST_HS=$(wg show wg0 latest-handshakes 2>/dev/null | sed 's/.*	//')
     NOW=$(date +%s)
     if [ -n "$LAST_HS" ] && [ "$LAST_HS" != "0" ]; then
         AGE=$((NOW - LAST_HS))
