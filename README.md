@@ -63,9 +63,9 @@ Access at: `http://localhost:9091`
     restart_policy: always
     env:
       WG_ENABLE: "true"
-      PUID: "1000"
-      PGID: "1000"
-      TZ: "UTC"
+      PUID: "@PUID@"
+      PGID: "@PGID@"
+      TZ: "@TZ@"
     ports:
       - "9091:9091"
       - "51413:51413"
@@ -77,7 +77,6 @@ Access at: `http://localhost:9091`
 ```
 
 ## Configuration
-
 ### Environment Variables
 
 | Variable | Default | Description |
@@ -86,7 +85,6 @@ Access at: `http://localhost:9091`
 | `PUID` | `1000` | User ID for the application process |
 | `PGID` | `1000` | Group ID for the application process |
 | `TZ` | `UTC` | Timezone for the container |
-
 ### Volumes
 
 | Path | Description |
@@ -94,7 +92,6 @@ Access at: `http://localhost:9091`
 | `/config` | Configuration directory (settings.json, WireGuard configs) |
 | `/downloads` | Download directory |
 | `/watch` | Watch directory for torrent files |
-
 ### Ports
 
 | Port | Protocol | Description |
