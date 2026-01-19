@@ -1,3 +1,5 @@
 icon: ':simple-wireguard:'
 cit:
   mode: shell
+versions:
+  pkg_name: transmission-daemon
