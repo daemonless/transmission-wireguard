@@ -11,6 +11,7 @@ Transmission BitTorrent client with built-in WireGuard VPN support.
 |---|---|
 | **Port** | 9091 |
 | **Registry** | `ghcr.io/daemonless/transmission-wireguard` |
+| **Docs** | [daemonless.io/images/transmission-wireguard](https://daemonless.io/images/transmission-wireguard/) |
 | **Source** | [https://github.com/transmission/transmission](https://github.com/transmission/transmission) |
 | **Website** | [https://transmissionbt.com/](https://transmissionbt.com/) |
 
