@@ -11,13 +11,53 @@ x-daemonless:
   user: "bsd"
   mlock: false
   upstream_binary: false
-  
+  notes: |
+    ## WireGuard Setup
+
+    ### Host Requirements
+
+    Load the WireGuard kernel module on the host:
+    ```bash
+    kldload if_wg
+    echo 'if_wg_load="YES"' >> /boot/loader.conf
+    ```
+
+    ### VNET Required
+
+    This container requires its own network stack. Add the annotation:
+    ```
+    --annotation 'org.freebsd.jail.vnet=new'
+    ```
+
+    ### Getting VPN Credentials
+
+    From your VPN provider (Mullvad, PIA, ProtonVPN, etc.), get:
+    - **Private Key** - Your client private key
+    - **Public Key** - The VPN server's public key
+    - **Endpoint** - Server address like `vpn.example.com:51820`
+    - **Address** - Your assigned tunnel IP
+
+    ### Kill Switch
+
+    Traffic is routed through the VPN interface. If the VPN connection drops, Transmission loses connectivity - no IP leaks.
+
+    ### Verifying VPN
+
+    Check your public IP from inside the container:
+    ```bash
+    podman exec transmission-wireguard fetch -qo - https://ifconfig.me
+    ```
+
   docs:
     env:
       PUID: "User ID for the application process"
       PGID: "Group ID for the application process"
       TZ: "Timezone for the container"
-      WG_ENABLE: "Enable WireGuard (true/false)"
+      WG_PRIVATE_KEY: "Your WireGuard private key"
+      WG_PEER_PUBLIC_KEY: "VPN server's public key"
+      WG_ENDPOINT: "VPN server address (host:port)"
+      WG_ADDRESS: "Your tunnel IP address (default: 10.5.0.2/32)"
+      WG_DNS: "DNS server to use (default: 1.1.1.1)"
     volumes:
       /config: "Configuration directory (settings.json, WireGuard configs)"
       /downloads: "Download directory"
@@ -31,19 +71,22 @@ services:
     image: ghcr.io/daemonless/transmission-wireguard:latest
     container_name: transmission-wireguard
     restart: unless-stopped
-    
-    # Needs devices for tun
-    devices:
-      - /dev/tun:/dev/tun
+
+    annotations:
+      org.freebsd.jail.vnet: "new"
 
     environment:
-      - WG_ENABLE=true
+      - WG_PRIVATE_KEY=your-private-key
+      - WG_PEER_PUBLIC_KEY=vpn-server-public-key
+      - WG_ENDPOINT=vpn.example.com:51820
+      - WG_ADDRESS=10.5.0.2/32
+      - WG_DNS=1.1.1.1
       - PUID=1000
       - PGID=1000
       - TZ=UTC
 
     volumes:
-      - /path/to/containers/transmission-wireguard/config:/config
+      - /path/to/containers/transmission-wireguard:/config
       - /path/to/downloads:/downloads
       - /path/to/watch:/watch
 
