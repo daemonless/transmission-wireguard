@@ -1,11 +1,11 @@
 {
   "image": "transmission-wireguard",
-  "generated": "2026-02-01T22:43:33Z",
+  "generated": "2026-02-02T11:04:48Z",
   "tags": {
     "pkg-latest": {
       "app_version": "4.0.6_7",
       "source": "freebsd-latest",
-      "generated": "2026-02-01T22:38:06Z",
+      "generated": "2026-02-02T11:04:37Z",
       "packages": {
         "freebsd": [
           {
@@ -234,7 +234,7 @@
           },
           {
             "name": "wireguard-tools",
-            "version": "1.0.20250521"
+            "version": "1.0.20250521_1"
           },
           {
             "name": "zstd",
@@ -258,7 +258,7 @@
     "pkg": {
       "app_version": "4.0.6_7",
       "source": "freebsd-quarterly",
-      "generated": "2026-02-01T22:29:33Z",
+      "generated": "2026-02-02T11:04:24Z",
       "packages": {
         "freebsd": [
           {
