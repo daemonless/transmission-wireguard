@@ -25,7 +25,11 @@ services:
     image: ghcr.io/daemonless/transmission-wireguard:latest
     container_name: transmission-wireguard
     environment:
-      - WG_ENABLE=true
+      - WG_PRIVATE_KEY=your-private-key
+      - WG_PEER_PUBLIC_KEY=vpn-server-public-key
+      - WG_ENDPOINT=vpn.example.com:51820
+      - WG_ADDRESS=10.5.0.2/32
+      - WG_DNS=1.1.1.1
       - PUID=1000
       - PGID=1000
       - TZ=UTC
@@ -47,7 +51,11 @@ podman run -d --name transmission-wireguard \
   -p 9091:9091 \
   -p 51413:51413 \
   -p 51413:51413 \
-  -e WG_ENABLE=true \
+  -e WG_PRIVATE_KEY=your-private-key \
+  -e WG_PEER_PUBLIC_KEY=vpn-server-public-key \
+  -e WG_ENDPOINT=vpn.example.com:51820 \
+  -e WG_ADDRESS=10.5.0.2/32 \
+  -e WG_DNS=1.1.1.1 \
   -e PUID=@PUID@ \
   -e PGID=@PGID@ \
   -e TZ=@TZ@ \
@@ -68,7 +76,11 @@ Access at: `http://localhost:9091`
     state: started
     restart_policy: always
     env:
-      WG_ENABLE: "true"
+      WG_PRIVATE_KEY: "your-private-key"
+      WG_PEER_PUBLIC_KEY: "vpn-server-public-key"
+      WG_ENDPOINT: "vpn.example.com:51820"
+      WG_ADDRESS: "10.5.0.2/32"
+      WG_DNS: "1.1.1.1"
       PUID: "@PUID@"
       PGID: "@PGID@"
       TZ: "@TZ@"
@@ -87,7 +99,11 @@ Access at: `http://localhost:9091`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WG_ENABLE` | `true` | Enable WireGuard (true/false) |
+| `WG_PRIVATE_KEY` | `your-private-key` | Your WireGuard private key |
+| `WG_PEER_PUBLIC_KEY` | `vpn-server-public-key` | VPN server's public key |
+| `WG_ENDPOINT` | `vpn.example.com:51820` | VPN server address (host:port) |
+| `WG_ADDRESS` | `10.5.0.2/32` | Your tunnel IP address (default: 10.5.0.2/32) |
+| `WG_DNS` | `1.1.1.1` | DNS server to use (default: 1.1.1.1) |
 | `PUID` | `1000` | User ID for the application process |
 | `PGID` | `1000` | Group ID for the application process |
 | `TZ` | `UTC` | Timezone for the container |
@@ -105,6 +121,43 @@ Access at: `http://localhost:9091`
 | `9091` | TCP | Web UI |
 | `51413` | TCP | Torrent traffic (TCP/UDP) |
 | `51413` | TCP | Torrent traffic (TCP/UDP) |
+
+## WireGuard Setup
+
+### Host Requirements
+
+Load the WireGuard kernel module on the host:
+```bash
+kldload if_wg
+echo 'if_wg_load="YES"' >> /boot/loader.conf
+```
+
+### VNET Required
+
+This container requires its own network stack. Add the annotation:
+```
+--annotation 'org.freebsd.jail.vnet=new'
+```
+
+### Getting VPN Credentials
+
+From your VPN provider (Mullvad, PIA, ProtonVPN, etc.), get:
+- **Private Key** - Your client private key
+- **Public Key** - The VPN server's public key
+- **Endpoint** - Server address like `vpn.example.com:51820`
+- **Address** - Your assigned tunnel IP
+
+### Kill Switch
+
+Traffic is routed through the VPN interface. If the VPN connection drops, Transmission loses connectivity - no IP leaks.
+
+### Verifying VPN
+
+Check your public IP from inside the container:
+```bash
+podman exec transmission-wireguard fetch -qo - https://ifconfig.me
+```
+
 
 ## Notes
 
