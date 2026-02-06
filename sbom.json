@@ -1,11 +1,12 @@
 {
   "image": "transmission-wireguard",
-  "generated": "2026-02-02T13:55:00Z",
+  "generated": "2026-02-06T00:25:53Z",
   "tags": {
     "pkg-latest": {
+      "arch": "amd64",
       "app_version": "4.0.6_7",
       "source": "freebsd-latest",
-      "generated": "2026-02-02T13:52:36Z",
+      "generated": "2026-02-06T00:25:34Z",
       "packages": {
         "freebsd": [
           {
@@ -256,9 +257,10 @@
       }
     },
     "pkg": {
+      "arch": "amd64",
       "app_version": "4.0.6_7",
       "source": "freebsd-quarterly",
-      "generated": "2026-02-02T13:54:47Z",
+      "generated": "2026-02-06T00:21:53Z",
       "packages": {
         "freebsd": [
           {
