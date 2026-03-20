@@ -5,15 +5,28 @@ Source: dbuild templates
 
 # Transmission with WireGuard
 
+[![Build Status](https://img.shields.io/github/actions/workflow/status/daemonless/transmission-wireguard/build.yaml?style=flat-square&label=Build&color=green)](https://github.com/daemonless/transmission-wireguard/actions)
+[![Last Commit](https://img.shields.io/github/last-commit/daemonless/transmission-wireguard?style=flat-square&label=Last+Commit&color=blue)](https://github.com/daemonless/transmission-wireguard/commits)
+
 Transmission BitTorrent client with built-in WireGuard VPN support.
 
 | | |
 |---|---|
 | **Port** | 9091 |
 | **Registry** | `ghcr.io/daemonless/transmission-wireguard` |
-| **Docs** | [daemonless.io/images/transmission-wireguard](https://daemonless.io/images/transmission-wireguard/) |
 | **Source** | [https://github.com/transmission/transmission](https://github.com/transmission/transmission) |
 | **Website** | [https://transmissionbt.com/](https://transmissionbt.com/) |
+
+## Version Tags
+
+| Tag | Description | Best For |
+| :--- | :--- | :--- |
+| `latest` / `pkg` | **FreeBSD Quarterly**. Uses stable, tested packages. | Most users. Matches Linux Docker behavior. |
+| `pkg-latest` | **FreeBSD Latest**. Rolling package updates. | Newest FreeBSD packages. |
+
+## Prerequisites
+
+Before deploying, ensure your host environment is ready. See the [Quick Start Guide](https://daemonless.io/guides/quick-start) for host setup instructions.
 
 ## Deployment
 
@@ -34,14 +47,74 @@ services:
       - PGID=1000
       - TZ=UTC
     volumes:
-      - /path/to/containers/transmission-wireguard:/config
-      - /path/to/downloads:/downloads
-      - /path/to/containers/transmission-wireguard/watch:/watch
+      - "/path/to/containers/transmission-wireguard:/config"
+      - "/path/to/downloads:/downloads"
+      - "/path/to/containers/transmission-wireguard/watch:/watch"
     ports:
       - 9091:9091
       - 51413:51413
       - 51413:51413
     restart: unless-stopped
+```
+
+### AppJail Director
+
+**.env**:
+
+```
+DIRECTOR_PROJECT=transmission-wireguard
+WG_PRIVATE_KEY=your-private-key
+WG_PEER_PUBLIC_KEY=vpn-server-public-key
+WG_ENDPOINT=vpn.example.com:51820
+WG_ADDRESS=10.5.0.2/32
+WG_DNS=1.1.1.1
+PUID=1000
+PGID=1000
+TZ=UTC
+```
+
+**appjail-director.yml**:
+
+```yaml
+options:
+  - virtualnet: ':<random> default'
+  - nat:
+services:
+  transmission-wireguard:
+    name: transmission_wireguard
+    options:
+      - container: 'boot args:--pull'
+    oci:
+      user: root
+      environment:
+        - WG_PRIVATE_KEY: !ENV '${WG_PRIVATE_KEY}'
+        - WG_PEER_PUBLIC_KEY: !ENV '${WG_PEER_PUBLIC_KEY}'
+        - WG_ENDPOINT: !ENV '${WG_ENDPOINT}'
+        - WG_ADDRESS: !ENV '${WG_ADDRESS}'
+        - WG_DNS: !ENV '${WG_DNS}'
+        - PUID: !ENV '${PUID}'
+        - PGID: !ENV '${PGID}'
+        - TZ: !ENV '${TZ}'
+    volumes:
+      - transmission-wireguard: /config
+      - downloads: /downloads
+      - transmission-wireguard_watch: /watch
+volumes:
+  transmission-wireguard:
+    device: '/path/to/containers/transmission-wireguard'
+  downloads:
+    device: 'downloads'
+  transmission-wireguard_watch:
+    device: '/path/to/containers/transmission-wireguard/watch'
+```
+
+**Makejail**:
+
+```
+ARG tag=latest
+
+OPTION overwrite=force
+OPTION from=ghcr.io/daemonless/transmission-wireguard:${tag}
 ```
 
 ### Podman CLI
@@ -51,21 +124,19 @@ podman run -d --name transmission-wireguard \
   -p 9091:9091 \
   -p 51413:51413 \
   -p 51413:51413 \
-  --annotation 'org.freebsd.jail.vnet=new' \
   -e WG_PRIVATE_KEY=your-private-key \
   -e WG_PEER_PUBLIC_KEY=vpn-server-public-key \
   -e WG_ENDPOINT=vpn.example.com:51820 \
   -e WG_ADDRESS=10.5.0.2/32 \
   -e WG_DNS=1.1.1.1 \
-  -e PUID=@PUID@ \
-  -e PGID=@PGID@ \
-  -e TZ=@TZ@ \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -e TZ=UTC \
   -v /path/to/containers/transmission-wireguard:/config \
   -v /path/to/downloads:/downloads \
   -v /path/to/containers/transmission-wireguard/watch:/watch \
   ghcr.io/daemonless/transmission-wireguard:latest
 ```
-Access at: `http://localhost:9091`
 
 ### Ansible
 
@@ -82,9 +153,9 @@ Access at: `http://localhost:9091`
       WG_ENDPOINT: "vpn.example.com:51820"
       WG_ADDRESS: "10.5.0.2/32"
       WG_DNS: "1.1.1.1"
-      PUID: "@PUID@"
-      PGID: "@PGID@"
-      TZ: "@TZ@"
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "UTC"
     ports:
       - "9091:9091"
       - "51413:51413"
@@ -95,7 +166,10 @@ Access at: `http://localhost:9091`
       - "/path/to/containers/transmission-wireguard/watch:/watch"
 ```
 
-## Configuration
+Access at: `http://localhost:9091`
+
+## Parameters
+
 ### Environment Variables
 
 | Variable | Default | Description |
@@ -108,6 +182,7 @@ Access at: `http://localhost:9091`
 | `PUID` | `1000` | User ID for the application process |
 | `PGID` | `1000` | Group ID for the application process |
 | `TZ` | `UTC` | Timezone for the container |
+
 ### Volumes
 
 | Path | Description |
@@ -115,6 +190,7 @@ Access at: `http://localhost:9091`
 | `/config` | Configuration directory (settings.json, WireGuard configs) |
 | `/downloads` | Download directory |
 | `/watch` | Watch directory for torrent files |
+
 ### Ports
 
 | Port | Protocol | Description |
@@ -160,8 +236,10 @@ podman exec transmission-wireguard fetch -qo - https://ifconfig.me
 ```
 
 
-## Notes
+**Architectures:** amd64
+**User:** `bsd` (UID/GID via PUID/PGID, defaults to 1000:1000)
+**Base:** FreeBSD 15.0
 
-- **Architectures:** amd64
-- **User:** `bsd` (UID/GID set via PUID/PGID)
-- **Base:** Built on `ghcr.io/daemonless/base` (FreeBSD)
+---
+
+Need help? Join our [Discord](https://discord.gg/Kb9tkhecZT) community.
