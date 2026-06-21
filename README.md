@@ -84,6 +84,9 @@ services:
     name: transmission_wireguard
     options:
       - container: 'boot args:--pull'
+      - expose="9091:9091 proto:tcp" \
+      - expose="51413:51413 proto:tcp" \
+      - expose="51413:51413 proto:udp" \
     oci:
       user: root
       environment:
@@ -116,6 +119,7 @@ ARG tag=latest
 OPTION overwrite=force
 OPTION from=ghcr.io/daemonless/transmission-wireguard:${tag}
 ```
+**Note**: Exposing ports in AppJail means that your service can be reached from remote hosts. If that is not your intention, do not expose the ports and communicate with the service using the IPv4 address assigned by the virtual network.
 
 ### Podman CLI
 
@@ -137,6 +141,32 @@ podman run -d --name transmission-wireguard \
   -v /path/to/containers/transmission-wireguard/watch:/watch \
   ghcr.io/daemonless/transmission-wireguard:latest
 ```
+
+### AppJail
+
+```bash
+appjail oci run -Pd \
+  -o overwrite=force \
+  -o container="args:--pull" \
+  -o virtualnet=":<random> default" \
+  -o nat \
+  -o expose="9091:9091 proto:tcp" \
+  -o expose="51413:51413 proto:tcp" \
+  -o expose="51413:51413 proto:udp" \
+  -e WG_PRIVATE_KEY=your-private-key \
+  -e WG_PEER_PUBLIC_KEY=vpn-server-public-key \
+  -e WG_ENDPOINT=vpn.example.com:51820 \
+  -e WG_ADDRESS=10.5.0.2/32 \
+  -e WG_DNS=1.1.1.1 \
+  -e PUID=1000 \
+  -e PGID=1000 \
+  -e TZ=UTC \
+  -o fstab="/path/to/containers/transmission-wireguard /config <pseudofs>" \
+  -o fstab="/path/to/downloads /downloads <pseudofs>" \
+  -o fstab="/path/to/containers/transmission-wireguard/watch /watch <pseudofs>" \
+  ghcr.io/daemonless/transmission-wireguard:latest transmission-wireguard
+```
+**Note**: Exposing ports in AppJail means that your service can be reached from remote hosts. If that is not your intention, do not expose the ports and communicate with the service using the IPv4 address assigned by the virtual network.
 
 ### Ansible
 
