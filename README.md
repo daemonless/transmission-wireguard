@@ -10,7 +10,6 @@ Source: dbuild templates
 
 Transmission BitTorrent client with built-in WireGuard VPN support.
 
-
 | | |
 |---|---|
 | **Port** | 9091 |
@@ -36,25 +35,25 @@ Before deploying, ensure your host environment is ready. See the [Quick Start Gu
 ```yaml
 services:
   transmission-wireguard:
-    image: ghcr.io/daemonless/transmission-wireguard:latest
+    image: "ghcr.io/daemonless/transmission-wireguard:latest"
     container_name: transmission-wireguard
     environment:
-      - WG_PRIVATE_KEY=your-private-key
-      - WG_PEER_PUBLIC_KEY=vpn-server-public-key
-      - WG_ENDPOINT=vpn.example.com:51820
-      - WG_ADDRESS=10.5.0.2/32
-      - WG_DNS=1.1.1.1
-      - PUID=1000
-      - PGID=1000
-      - TZ=UTC
+      - WG_PRIVATE_KEY=your-private-key  # Your WireGuard private key
+      - WG_PEER_PUBLIC_KEY=vpn-server-public-key  # VPN server's public key
+      - WG_ENDPOINT=vpn.example.com:51820  # VPN server address (host:port)
+      - WG_ADDRESS=10.5.0.2/32  # Your tunnel IP address (default: 10.5.0.2/32)
+      - WG_DNS=1.1.1.1  # DNS server to use (default: 1.1.1.1)
+      - PUID=1000  # User ID for the application process
+      - PGID=1000  # Group ID for the application process
+      - TZ=UTC  # Timezone for the container
     volumes:
       - "/path/to/containers/transmission-wireguard:/config"
       - "/path/to/downloads:/downloads"
       - "/path/to/containers/transmission-wireguard/watch:/watch"
     ports:
-      - 9091:9091
-      - 51413:51413
-      - 51413:51413
+      - "9091:9091"
+      - "51413:51413"
+      - "51413:51413"
     restart: unless-stopped
 ```
 
@@ -145,7 +144,7 @@ podman run -d --name transmission-wireguard \
 - name: Deploy transmission-wireguard
   containers.podman.podman_container:
     name: transmission-wireguard
-    image: ghcr.io/daemonless/transmission-wireguard:latest
+    image: "ghcr.io/daemonless/transmission-wireguard:latest"
     state: started
     restart_policy: always
     env:
@@ -166,8 +165,6 @@ podman run -d --name transmission-wireguard \
       - "/path/to/downloads:/downloads"
       - "/path/to/containers/transmission-wireguard/watch:/watch"
 ```
-
-Access at: `http://localhost:9091`
 
 ## Parameters
 
