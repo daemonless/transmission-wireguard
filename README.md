@@ -18,14 +18,12 @@ Transmission BitTorrent client with built-in WireGuard VPN support.
 | **Website** | [https://transmissionbt.com/](https://transmissionbt.com/) |
 
 ## Version Tags
-
 | Tag | Description | Best For |
 | :--- | :--- | :--- |
 | `latest` / `pkg` | **FreeBSD Quarterly**. Uses stable, tested packages. | Most users. Matches Linux Docker behavior. |
 | `pkg-latest` | **FreeBSD Latest**. Rolling package updates. | Newest FreeBSD packages. |
 
 ## Prerequisites
-
 Before deploying, ensure your host environment is ready. See the [Quick Start Guide](https://daemonless.io/guides/quick-start) for host setup instructions.
 
 ## Deployment
@@ -58,10 +56,11 @@ services:
 ```
 
 ### AppJail Director
-
 **.env**:
 
 ```
+# .env
+
 DIRECTOR_PROJECT=transmission-wireguard
 WG_PRIVATE_KEY=your-private-key
 WG_PEER_PUBLIC_KEY=vpn-server-public-key
@@ -76,6 +75,8 @@ TZ=UTC
 **appjail-director.yml**:
 
 ```yaml
+# appjail-director.yml
+
 options:
   - virtualnet: ':<random> default'
   - nat:
@@ -84,9 +85,9 @@ services:
     name: transmission_wireguard
     options:
       - container: 'boot args:--pull'
-      - expose="9091:9091 proto:tcp" \
-      - expose="51413:51413 proto:tcp" \
-      - expose="51413:51413 proto:udp" \
+      - expose: '9091:9091 proto:tcp'
+      - expose: '51413:51413 proto:tcp'
+      - expose: '51413:51413 proto:udp'
     oci:
       user: root
       environment:
@@ -114,6 +115,8 @@ volumes:
 **Makejail**:
 
 ```
+# Makejail
+
 ARG tag=latest
 
 OPTION overwrite=force
@@ -266,7 +269,7 @@ podman exec transmission-wireguard fetch -qo - https://ifconfig.me
 
 **Architectures:** amd64
 **User:** `bsd` (UID/GID via PUID/PGID, defaults to 1000:1000)
-**Base:** FreeBSD 15.0
+**Base:** FreeBSD 15.1
 
 ---
 
