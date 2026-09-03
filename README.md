@@ -52,8 +52,13 @@ services:
       - "9091:9091"
       - "51413:51413"
       - "51413:51413"
-    restart: unless-stopped
+    annotations:
+      org.freebsd.jail.vnet: "new"
+    # always (not unless-stopped) so FreeBSD's podman rc.d auto-starts it at boot
+    restart: always
 ```
+
+Save as `compose.yaml`, then run `podman-compose up -d`.
 
 ### AppJail Director
 **.env**:
@@ -122,6 +127,9 @@ ARG tag=latest
 OPTION overwrite=force
 OPTION from=ghcr.io/daemonless/transmission-wireguard:${tag}
 ```
+
+Save the files above, then run `appjail-director up`.
+
 **Note**: Exposing ports in AppJail means that your service can be reached from remote hosts. If that is not your intention, do not expose the ports and communicate with the service using the IPv4 address assigned by the virtual network.
 
 ### Podman CLI
@@ -131,6 +139,7 @@ podman run -d --name transmission-wireguard \
   -p 9091:9091 \
   -p 51413:51413 \
   -p 51413:51413 \
+  --annotation 'org.freebsd.jail.vnet=new' \
   -e WG_PRIVATE_KEY=your-private-key \
   -e WG_PEER_PUBLIC_KEY=vpn-server-public-key \
   -e WG_ENDPOINT=vpn.example.com:51820 \
@@ -144,6 +153,8 @@ podman run -d --name transmission-wireguard \
   -v /path/to/containers/transmission-wireguard/watch:/watch \
   ghcr.io/daemonless/transmission-wireguard:latest
 ```
+
+Save as `run.sh`, then run `sh run.sh`.
 
 ### AppJail
 
@@ -169,7 +180,48 @@ appjail oci run -Pd \
   -o fstab="/path/to/containers/transmission-wireguard/watch /watch <pseudofs>" \
   ghcr.io/daemonless/transmission-wireguard:latest transmission-wireguard
 ```
+
+Save as `run.sh`, then run `sh run.sh`.
+
 **Note**: Exposing ports in AppJail means that your service can be reached from remote hosts. If that is not your intention, do not expose the ports and communicate with the service using the IPv4 address assigned by the virtual network.
+
+### Bastille
+
+> [!WARNING]
+> Bastille's OCI support is **experimental**. It requires `buildah`, shares the host network stack (`inherit`), and persists image-declared volumes under `--data-path`.
+
+```yaml
+services:
+  transmission-wireguard:
+    image: "ghcr.io/daemonless/transmission-wireguard:latest"
+    container_name: transmission-wireguard
+    network_mode: host  # jail shares host networking
+    environment:
+      - WG_PRIVATE_KEY=your-private-key
+      - WG_PEER_PUBLIC_KEY=vpn-server-public-key
+      - WG_ENDPOINT=vpn.example.com:51820
+      - WG_ADDRESS=10.5.0.2/32
+      - WG_DNS=1.1.1.1
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+```
+
+Save as `podman-compose.yml`, then run `bastille up`. Or via CLI:
+
+```bash
+bastille create -O \
+  --env WG_PRIVATE_KEY=your-private-key \
+  --env WG_PEER_PUBLIC_KEY=vpn-server-public-key \
+  --env WG_ENDPOINT=vpn.example.com:51820 \
+  --env WG_ADDRESS=10.5.0.2/32 \
+  --env WG_DNS=1.1.1.1 \
+  --env PUID=1000 \
+  --env PGID=1000 \
+  --env TZ=UTC \
+  --data-path /path/to/containers/transmission-wireguard \
+  transmission-wireguard ghcr.io/daemonless/transmission-wireguard:latest inherit
+```
 
 ### Ansible
 
@@ -197,7 +249,11 @@ appjail oci run -Pd \
       - "/path/to/containers/transmission-wireguard:/config"
       - "/path/to/downloads:/downloads"
       - "/path/to/containers/transmission-wireguard/watch:/watch"
+    annotation:
+      org.freebsd.jail.vnet: "new"
 ```
+
+Save as `transmission-wireguard-deploy.yaml`, then run `ansible-playbook transmission-wireguard-deploy.yaml`.
 
 ## Parameters
 

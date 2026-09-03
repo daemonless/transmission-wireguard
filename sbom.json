@@ -1,11 +1,11 @@
 {
-  "generated": "2026-08-20T07:29:32Z",
+  "generated": "2026-09-03T22:58:58Z",
   "image": "transmission-wireguard",
   "tags": {
     "pkg": {
       "app_version": "4.1.3",
       "arch": "amd64",
-      "generated": "2026-08-20T07:28:54Z",
+      "generated": "2026-09-03T22:58:29Z",
       "packages": {
         "dotnet": [],
         "freebsd": [
@@ -147,7 +147,7 @@
               "BSD2CLAUSE"
             ],
             "name": "FreeBSD-openssl-lib",
-            "version": "15.1"
+            "version": "15.1p3"
           },
           {
             "licenses": [
@@ -175,7 +175,7 @@
               "BSD2CLAUSE"
             ],
             "name": "FreeBSD-runtime",
-            "version": "15.1p2"
+            "version": "15.1p3"
           },
           {
             "licenses": [
@@ -252,7 +252,7 @@
               "MPL20"
             ],
             "name": "ca_root_nss",
-            "version": "3.126.1"
+            "version": "3.127"
           },
           {
             "licenses": [
@@ -474,7 +474,7 @@
     "pkg-latest": {
       "app_version": "4.1.3",
       "arch": "amd64",
-      "generated": "2026-08-20T07:27:50Z",
+      "generated": "2026-09-03T22:58:17Z",
       "packages": {
         "dotnet": [],
         "freebsd": [
@@ -616,7 +616,7 @@
               "BSD2CLAUSE"
             ],
             "name": "FreeBSD-openssl-lib",
-            "version": "15.1"
+            "version": "15.1p3"
           },
           {
             "licenses": [
@@ -644,7 +644,7 @@
               "BSD2CLAUSE"
             ],
             "name": "FreeBSD-runtime",
-            "version": "15.1p2"
+            "version": "15.1p3"
           },
           {
             "licenses": [
@@ -721,7 +721,7 @@
               "MPL20"
             ],
             "name": "ca_root_nss",
-            "version": "3.126.1"
+            "version": "3.127"
           },
           {
             "licenses": [
@@ -821,14 +821,14 @@
               "MIT"
             ],
             "name": "libnghttp2",
-            "version": "1.69.0"
+            "version": "1.70.0"
           },
           {
             "licenses": [
               "MIT"
             ],
             "name": "libpsl",
-            "version": "0.22.0"
+            "version": "0.23.3"
           },
           {
             "licenses": [
