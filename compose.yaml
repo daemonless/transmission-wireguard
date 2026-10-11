@@ -54,8 +54,12 @@ x-daemonless:
       PUID: "User ID for the application process"
       PGID: "Group ID for the application process"
       TZ: "Timezone for the container"
-      WG_PRIVATE_KEY: "Your WireGuard private key"
-      WG_PEER_PUBLIC_KEY: "VPN server's public key"
+      WG_PRIVATE_KEY:
+        desc: "Your WireGuard private key"
+        generate: false  # from your VPN provider: fjord must not make one up
+      WG_PEER_PUBLIC_KEY:
+        desc: "VPN server's public key"
+        generate: false
       WG_ENDPOINT: "VPN server address (host:port)"
       WG_ADDRESS: "Your tunnel IP address (default: 10.5.0.2/32)"
       WG_DNS: "DNS server to use (default: 1.1.1.1)"
