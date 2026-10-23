@@ -1,11 +1,6 @@
 #!/bin/sh
-# Transmission s6 service
+# Transmission rcd unit
 # Waits for WireGuard to be ready before starting
-
-# Load environment variables
-if [ -f /run/s6/container-environment/all_envs ]; then
-    . /run/s6/container-environment/all_envs
-fi
 
 if [ "${WG_ENABLE}" != "false" ]; then
     echo "[transmission] Waiting for WireGuard VPN to be ready..."
@@ -34,7 +29,4 @@ echo "[transmission] Current external IP: $VPN_IP"
 
 export TRANSMISSION_WEB_HOME=/usr/local/share/transmission/web
 
-# Signal readiness when the port is responsive
-s6-ready-when fetch -qo /dev/null http://localhost:9091/transmission/web/
-
-exec /usr/local/bin/s6-setuidgid bsd /usr/local/bin/transmission-daemon -f -g /config --port 9091
+exec dsu bsd /usr/local/bin/transmission-daemon -f -g /config --port 9091

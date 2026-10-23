@@ -1,15 +1,11 @@
 #!/bin/sh
-# WireGuard s6 service
+# WireGuard rcd unit
 # Sets up the VPN tunnel and monitors it
-
-# Load environment variables
-if [ -f /run/s6/container-environment/all_envs ]; then
-    . /run/s6/container-environment/all_envs
-fi
 
 if [ "${WG_ENABLE}" = "false" ]; then
     echo "[wireguard] WireGuard disabled by environment variable."
-    exit 0
+    # Disabled: idle (an exit would be restarted). FreeBSD sleep has no "infinity".
+    exec sleep 2147483647
 fi
 
 echo "[wireguard] Starting WireGuard VPN service..."
